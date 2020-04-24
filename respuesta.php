@@ -1,74 +1,3 @@
-<?php
-// SDK de Mercado Pago
-require __DIR__ .  '/vendor/autoload.php';
-
-// Agrega credenciales
-MercadoPago\SDK::setAccessToken('APP_USR-6317427424180639-042406-6aee9711d6bc4207c2dc79590031b6f0-469485398');
-
-$urlHost = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http" . "://$_SERVER[HTTP_HOST]";
-
-// Crea un objeto de preferencia
-$preference = new MercadoPago\Preference();
-
-// Filtra las opciones de pago
-$preference->payment_methods = array(
-    "excluded_payment_methods" => array(
-        array("id" => "amex")
-    ),
-    "excluded_payment_types" => array(
-        array("id" => "atm")
-    ),
-    "installments" => 6
-);
-
-// Datos del pagador
-$payer = new MercadoPago\Payer();
-$payer->name = "Lalo";
-$payer->surname = "Landa";
-$payer->identification = array(
-    "type" => "DNI",
-    "number" => "22333444"
-);
-$payer->email = "test_user_63274575@testuser.com";
-$payer->phone = array(
-    "area_code" => "011",
-    "number" => "2222-3333"
-);
-$payer->address = array(
-    "street_name" => "Falsa",
-    "street_number" => 123,
-    "zip_code" => "1111"
-);
-$preference->payer = $payer;
-
-// Crea un ítem en la preferencia
-$item = new MercadoPago\Item();
-$item->id = 1234;
-$item->title = $_POST['title'];
-$item->description = "Dispositivo móvil de Tienda e-commerce";
-$item->picture_url = $urlHost . substr($_POST['img'], 1, strlen($_POST['img']));
-$item->quantity = $_POST['unit'];
-$item->unit_price = $_POST['price'];
-$preference->items = array($item);
-
-// Agregar Referencia Externa
-$preference->external_reference = "ABCD1234";
-
-// Agregar opciones para el redirect
-$preference->back_urls = array(
-    "success" => $urlHost . "/respuesta.php",
-    "failure" => $urlHost . "/respuesta.php",
-    "pending" => $urlHost . "/respuesta.php"
-);
-$preference->auto_return = "approved";
-
-// Agregar url de notificación
-$preference->notification_url = $urlHost . "/ipn.php";
-
-$preference->save();
-
-?>
-
 <!DOCTYPE html>
 <html class="supports-animation supports-columns svg no-touch no-ie no-oldie no-ios supports-backdrop-filter as-mouseuser" lang="en-US">
 
@@ -545,91 +474,63 @@ $preference->save();
                 </div>
             </div>
             <div class="as-search-results as-filter-open as-category-landing as-desktop" id="as-search-results">
+                <?php
+                // SDK de Mercado Pago
+                require __DIR__ .  '/vendor/autoload.php';
 
-                <div id="accessories-tab" class="as-accessories-details">
-                    <div class="as-accessories" id="as-accessories">
-                        <div class="as-accessories-header">
-                            <div class="as-search-results-count">
-                                <span class="as-search-results-value"></span>
-                            </div>
-                        </div>
-                        <div class="as-searchnav-placeholder" style="height: 77px;">
-                            <div class="row as-search-navbar" id="as-search-navbar" style="width: auto;">
-                                <div class="as-accessories-filter-tile column large-6 small-3">
+                // Agrega credenciales
+                MercadoPago\SDK::setAccessToken('APP_USR-6317427424180639-042406-6aee9711d6bc4207c2dc79590031b6f0-469485398');
 
-                                    <button class="as-filter-button" aria-expanded="true" aria-controls="as-search-filters" type="button">
-                                        <h2 class=" as-filter-button-text">
-                                            Smartphones
-                                        </h2>
-                                    </button>
-
-
-                                </div>
-
-                            </div>
-                        </div>
-                        <div class="as-accessories-results  as-search-desktop">
-                            <div class="width:60%">
-                                <div class="as-producttile-tilehero with-paddlenav " style="float:left;">
-                                    <div class="as-dummy-container as-dummy-img">
-
-                                        <img src="./assets/wireless-headphones" class="ir ir item-image as-producttile-image  " style="max-width: 70%;max-height: 70%;" alt="" width="445" height="445">
+                if (isset($_POST['payment_status'])) {
+                    $payment_status = $_POST['payment_status'];
+                    $payment_id = $_POST['payment_id'];
+                } else {
+                    $merchant_order = MercadoPago\MerchantOrder::find_by_id($_GET["merchant_order_id"]);
+                    $payment = $merchant_order->payments[0];
+                    $payment_status = $payment->status;
+                    $payment_id = $payment->id;
+                }
+                switch ($payment_status) {
+                    case "approved":
+                        $payment = MercadoPago\Payment::find_by_id($payment_id);
+                        $payment_method_id =  $payment->payment_method_id;
+                        $transaction_amount = $payment->transaction_amount;
+                        $merchant_order_id = $payment->order->id;
+                        $payment_id = $payment->id;
+                        $urlHost = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http" . "://$_SERVER[HTTP_HOST]";
+                        $echo = '<div style="padding: 5%;">
+                                    <p style="text-align: center;padding-top: 5%;"><b>PAGO APROBADO</b></p>
+                                    <p>Método de pago: ' . $payment_method_id . '</p>
+                                    <p>Monto pagado: ' . $transaction_amount . '</p>
+                                    <p>Número de orden del pedido: ' . $merchant_order_id . '</p>
+                                    <p>ID de pago de Mercado Pago: ' . $payment_id . '</p>
+                                    <div style="text-align: center;">
+                                        <button class="mercadopago-button" onclick="window.location.href =' . "'" . $urlHost . "'" . '">Volver al inicio</button>
                                     </div>
-                                    <div class="images mini-gallery gal5 ">
-
-
-                                        <div class="as-isdesktop with-paddlenav with-paddlenav-onhover">
-                                            <div class="clearfix image-list xs-no-js as-util-relatedlink relatedlink" data-relatedlink="6|Powerbeats3 Wireless Earphones - Neighborhood Collection - Brick Red|MPXP2">
-                                                <div class="as-tilegallery-element as-image-selected">
-                                                    <div class=""></div>
-                                                    <img src="<?php echo $_POST['img'] ?>" class="ir ir item-image as-producttile-image" alt="" width="445" height="445" style="content:-webkit-image-set(url(<?php echo $_POST['img'] ?>) 2x);">
-                                                </div>
-
-                                            </div>
-
-
-                                        </div>
-
-
-
-                                    </div>
-
-                                </div>
-                                <div class="as-producttile-info" style="float:left;min-height: 168px;">
-                                    <div class="as-producttile-titlepricewraper" style="min-height: 128px;">
-                                        <div class="as-producttile-title">
-                                            <h3 class="as-producttile-name">
-                                                <p class="as-producttile-tilelink">
-                                                    <span data-ase-truncate="2"><?php echo $_POST['title'] ?></span>
-                                                </p>
-
-                                            </h3>
-                                        </div>
-                                        <h3>
-                                            <?php echo "$" . $_POST['price'] ?>
-                                        </h3>
-                                        <h3>
-                                            <?php echo $_POST['unit'] ?>
-                                        </h3>
-                                    </div>
-                                    <?php // print_r($preference); ?>
-                                    <form action="/respuesta.php" method="POST">
-                                        <script src="https://www.mercadopago.com.ar/integrations/v1/web-payment-checkout.js"
-                                        data-preference-id="<?php echo $preference->id; ?>" data-button-label="Pagar la compra" data-elements-color="#2D3277">
-                                        </script>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                                </div>';
+                        echo $echo;
+                        break;
+                    case "pending":
+                        echo "PAGO PENDIENTE";
+                        break;
+                    case "in_process":
+                        echo "PAGO EN PROCESO";
+                        break;
+                    case "rejected":
+                        echo "PAGO RECHAZADO";
+                        break;
+                    case "cancelled":
+                        echo "PAGO CANCELADO";
+                        break;
+                }
+                ?>
             </div>
         </div>
         <div role="alert" class="as-loader-text ally" aria-live="assertive"></div>
-        <div class="as-footnotes">
+        <div class="as-footnotes ">
             <div class="as-footnotes-content">
                 <div class="as-footnotes-sosumi">
-                    Todos los derechos reservados Tienda Tecno 2019
+                    Todos los derechos reservados Tienda Tecno 2018
                 </div>
             </div>
         </div>
